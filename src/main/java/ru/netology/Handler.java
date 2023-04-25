@@ -35,11 +35,6 @@ public class Handler extends Thread {
         this.directory = directory;
     }
 
-    public Handler(Socket socket) {
-        this.socket = socket;
-    }
-
-
     @Override
     public void run() {
         try (var input = this.socket.getInputStream(); var output = this.socket.getOutputStream()) {
@@ -56,7 +51,7 @@ public class Handler extends Thread {
                 var fileBytes = content;
                 this.sendHeader(output, 200, "OK", type, fileBytes.length);
                 output.write(fileBytes);
-
+                output.flush();
             }
 
             if (Files.exists(filePath) && !Files.isDirectory(filePath)) {
@@ -65,16 +60,20 @@ public class Handler extends Thread {
                 var fileBytes = Files.readAllBytes(filePath);
                 this.sendHeader(output, 200, "OK", type, fileBytes.length);
                 output.write(fileBytes);
+                output.flush();
+
             } else {
                 var type = CONTENTS_TYPES.get("text");
                 this.sendHeader(output, 404, "Not Found", type, NOT_FOUND_MESSAGE.length());
                 output.write(NOT_FOUND_MESSAGE.getBytes());
+                output.flush();
             }
+            socket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+        System.out.println("Client  " + currentThread());
     }
-
 
     private String getRequestURL(InputStream input) {
         var reader = new Scanner(input).useDelimiter("\r\n");
@@ -93,7 +92,5 @@ public class Handler extends Thread {
         ps.printf("HTTP/1.1 %s %s%n", statusCode, statusText);
         ps.printf("Content-Type: %s%n", type);
         ps.printf("Content-Length: %s%n%n", length);
-
     }
-
 }

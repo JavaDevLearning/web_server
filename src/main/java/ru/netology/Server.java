@@ -12,8 +12,7 @@ public class Server {
 
     private int port;
     private String directory;
-
-    private final ExecutorService pool;
+    private ExecutorService pool;
 
 
     public Server(int port, String directory, int poolSize) {
@@ -25,11 +24,13 @@ public class Server {
     public void upServer() {
         try (var serverSocket = new ServerSocket(this.port)) {
             while (true) {
-                var soket = serverSocket.accept();
-                var thread = new Handler(soket, this.directory);
-                thread.start();
+                var socket = serverSocket.accept();
+                var handler = new Handler(socket, this.directory);
+                pool.submit(handler);
             }
         } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
             pool.shutdown();
         }
     }
